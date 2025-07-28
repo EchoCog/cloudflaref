@@ -1,0 +1,146 @@
+---
+title: Improvements to the Workers Terraform resources and SDKs
+description: Multiple improvements to the Workers Terraform resources and SDKs including fixes for plan diffs, Durable Objects migrations, file uploads, and new Python Workers support.
+products:
+  - workers
+date: 2025-07-28
+---
+
+The recent [Cloudflare Terraform Provider](https://registry.terraform.io/providers/cloudflare/cloudflare/latest/docs/resources/workers_script) and SDK releases (such as [cloudflare-typescript](https://github.com/cloudflare/cloudflare-typescript)) bring significant improvements to the Workers developer experience. These updates focus on reliability, performance, and adding Python Workers support.
+
+## Terraform Improvements
+
+### Fixed Unwarranted Plan Diffs
+
+Resolved several issues with the `cloudflare_workers_script` resource that resulted in unwarranted plan diffs, including:
+
+- Using Durable Objects migrations
+- Using some bindings such as `secret_text`
+- Using smart placement
+- When the API returned array attribute results in different order
+
+A resource should never show a plan diff if there wasn't an actual change. This fix reduces distracting noise in your Terraform plan.
+
+Available in Cloudflare Terraform Provider 5.8.0.
+
+### Fixed Durable Objects Migration Issues
+
+Resolved an issue in `cloudflare_workers_script` when using Durable Objects migrations failed on the second terraform apply. Configurations like this would work on the first Terraform apply, but fail on subsequent ones:
+
+```tf
+resource "cloudflare_workers_script" "my_worker" {
+  account_id  = "123456789"
+  script_name = "my_worker"
+  # ...
+  bindings = [
+    {
+      name         = "MY_DO"
+      type         = "durable_object_namespace"
+      class_name   = "MyDOClass"
+    }
+  ]
+
+  migrations = {
+    new_tag = "v1"
+    new_sqlite_classes = ["MyDOClass"]
+  }
+}
+```
+
+This is now fixed and available in Cloudflare Terraform Provider 5.8.0.
+
+### Improved File Management
+
+You can now specify `content_file = "worker.js"` and `content_sha256 = filesha256("worker.js")` instead of `content = file("worker.js")`. This prevents the Workers script content from being stored in the state file, which greatly reduces plan diff size and noise. If your workflow synced plans remotely, this will happen much faster. This is available in Cloudflare Terraform Provider 5.7.0.
+
+### Assets Headers and Redirects Support
+
+Fixed the `cloudflare_workers_script` resource to properly support headers and redirects for Assets:
+
+```tf
+resource "cloudflare_workers_script" "my_worker" {
+  account_id      = "123456789"
+  script_name     = "my_worker"
+  content_file    = "worker.js"
+  content_sha256  = filesha256("worker.js")
+  assets = {
+    config = {
+      headers = file("headers")
+      redirects = file("redirects")
+    }
+    # Completion jwt from:
+    # https://developers.cloudflare.com/api/resources/workers/subresources/assets/subresources/upload/
+    jwt = "jwt"
+  }
+}
+```
+
+Available in Cloudflare Terraform Provider 5.8.0.
+
+### Python Workers Support
+
+Added support for uploading [Python Workers](/workers/languages/python/) (beta) in Terraform. You can now deploy Python Workers with:
+
+```tf
+resource "cloudflare_workers_script" "my_worker" {
+  account_id       = "123456789"
+  script_name      = "my_worker"
+  content_file     = "worker.py"
+  content_sha256   = filesha256("worker.py")
+}
+```
+
+Available in Cloudflare Terraform Provider 5.8.0.
+
+## SDK Enhancements
+
+### Improved File Upload API
+
+Fixed an issue where Workers script versions in the SDK did not allow uploading files. The SDK now provides an improved Workers files upload API:
+
+```js
+const scriptContent = `
+  export default {
+    async fetch(request, env, ctx) {
+      return new Response('Hello World!', { status: 200 });
+    }
+  };
+`;
+
+const script = await client.workers.scripts.update('my-worker', {
+  account_id: '123456789',
+  metadata: {
+    main_module: 'my-script',
+  },
+  files: [
+    await toFile(Buffer.from(scriptContent), 'my-script', {
+      type: 'application/javascript+module',
+    }),
+  ],
+});
+```
+
+Available in cloudflare-typescript 4.6.0.
+
+### Fixed updating KV values
+
+Previously when create a KV value like this:
+
+```js
+await cf.kv.namespaces.values.update("my-kv-namespace", "key1", {
+  account_id: "123456789",
+  metadata: "my metadata",
+  value: JSON.stringify({
+    hello: "world"
+  })
+});
+```
+
+And recalled it in your Worker like this:
+```ts
+const value = await c.env.KV.get<{hello: string}>("key1", "json");
+```
+
+You'd get back this: `{metadata:'my metadata', value:"{'hello':'world'}"}` instead of the correct value of `{hello: 'world'}` 
+
+This is fixed in cloudflare-typescript 4.5.0.

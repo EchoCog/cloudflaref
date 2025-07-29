@@ -1,0 +1,70 @@
+name: Generate Demo Workflows
+
+on:
+  workflow_dispatch:
+    inputs:
+      regenerate_all:
+        description: 'Regenerate all demo workflows'
+        type: boolean
+        default: false
+  push:
+    branches: [production]
+    paths:
+      - 'scripts/generate-demo-workflows.ts'
+      - 'scripts/generate-demo-projects.ts'
+      - 'scripts/update-demo-urls.ts'
+
+jobs:
+  generate-workflows:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Generate demo workflows
+        run: npx tsx scripts/generate-demo-workflows.ts
+        
+      - name: Commit generated workflows
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Generate demo workflows from documentation [auto-generated]"
+          file_pattern: ".github/workflows/generated-demos/**"
+        
+      - name: Create pull request for new workflows
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.regenerate_all == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Update generated demo workflows"
+          title: "Update generated demo workflows"
+          body: |
+            This PR contains auto-generated GitHub Actions workflows for deploying documentation examples as live demos.
+            
+            ## Changes
+            - Generated workflows for Workers, Pages, D1, Durable Objects, and KV examples
+            - Each workflow automatically deploys demos when documentation changes
+            - Demo URLs are automatically updated in documentation files
+            
+            ## Generated Workflows
+            - `deploy-workers-demos.yml` - Deploys Workers examples
+            - `deploy-pages-demos.yml` - Deploys Pages examples  
+            - `deploy-d1-demos.yml` - Deploys D1 database examples
+            - `deploy-durable-objects-demos.yml` - Deploys Durable Objects examples
+            - `deploy-kv-demos.yml` - Deploys KV storage examples
+            
+            These workflows will run automatically when documentation in the respective product directories changes.
+          branch: auto/update-demo-workflows
+          delete-branch: true

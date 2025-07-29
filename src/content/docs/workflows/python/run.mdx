@@ -37,20 +37,51 @@ Refer to [Pyodide's documentation](https://pyodide.org/en/stable/usage/type-conv
   * `name` - the name of the step.
   * `duration` - the duration to sleep until, in either seconds or as a `WorkflowDuration` compatible string.
 
+```python
+async def on_run(self, event, step):
+    await step.sleep("my-sleep-step", "10 seconds")
+```
+
 * <code>step.sleep_until(name, timestamp)</code>
 
   * `name` - the name of the step.
-  * `timestamp` - a `datetime.date` object or seconds from the Unix epoch to sleep the Workflow instance until.
+  * `timestamp` - a `datetime.date` object or seconds from the Unix epoch to sleep the workflow instance until.
+
+```python
+async def on_run(self, event, step):
+    await step.sleep_until("my-sleep-step", datetime.datetime.now() + datetime.timedelta(seconds=10))
+```
 
 * <code>step.wait_for_event(name, event_type, timeout="24 hours")</code>
 
   * `name` - the name of the step.
   * `event_type` - the type of event to wait for.
-  * `timeout` - the timeout for the `waitForEvent` call. The default timeout is 24 hours.
+  * `timeout` - the timeout for the `wait_for_event` call. The default timeout is 24 hours.
+
+```python
+async def on_run(self, event, step):
+    await step.wait_for_event("my-wait-for-event-step", "my-event-type")
+```
 
 ## Error Handling
 
 Workflows semantics allow users to catch exceptions that get thrown to the top level.
+
+```python
+async def on_run(self, event, step):
+    async def await_step(fn):
+        try:
+            return await fn()
+        except Exception as e:
+            print(f"Successfully caught {type(e).__name__}: {e}")
+
+    @step.do("my_failing")
+    async def my_failing():
+        print("Executing my_failing")
+        raise TypeError("Intentional error in my_failing")
+
+    await_step(my_failing)
+```
 
 :::note
 Catching specific exceptions within an `except` block may not work, as some Python errors will not be re-instantiated into the same type of error when they are passed through the RPC layer.

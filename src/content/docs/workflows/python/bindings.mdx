@@ -62,6 +62,15 @@ Values returned from steps need to be converted into Javascript objects using `t
 
 :::
 
+### `event` parameter
+
+The `event` parameter is a dictionary that contains the payload passed to the workflow instance, along with other metadata:
+
+* <code>payload</code> - the payload passed to the workflow instance.
+* <code>timestamp</code> - the timestamp that the workflow was triggered.
+* <code>instanceId</code> - the ID of the current workflow instance.
+* <code>workflowName</code> - the name of the workflow.
+
 
 And this is how you use the payload in your workflow:
 

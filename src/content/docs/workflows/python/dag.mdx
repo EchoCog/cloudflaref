@@ -33,4 +33,4 @@ class MyWorkflow(WorkflowEntrypoint):
 
 Having `concurrent=True` allows the dependencies to be resolved concurrently. If one of the callables passed to `depends` has already completed, it will be skipped and its return value will be reused.
 
-This pattern is usefull for diamond shaped workflows, where a step depends on two or more other steps that can run concurrently.
+This pattern is usefull for diamond shaped workflows, where a step depends on two or more other steps that can run concurrently. 

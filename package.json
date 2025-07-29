@@ -22,7 +22,10 @@
 		"start": "npx astro dev",
 		"sync": "npx astro sync",
 		"test": "npx vitest",
-		"lint": "npx eslint"
+		"lint": "npx eslint",
+		"generate:demo-workflows": "npx tsx scripts/generate-demo-workflows.ts",
+		"generate:demo-projects": "npx tsx scripts/generate-demo-projects.ts",
+		"update:demo-urls": "npx tsx scripts/update-demo-urls.ts"
 	},
 	"devDependencies": {
 		"@actions/core": "1.11.1",
@@ -75,6 +78,7 @@
 		"fast-xml-parser": "5.2.5",
 		"github-slugger": "2.0.0",
 		"globals": "16.3.0",
+		"gray-matter": "4.0.3",
 		"hast-util-heading-rank": "3.0.0",
 		"hast-util-select": "6.0.4",
 		"hastscript": "9.0.1",

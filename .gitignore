@@ -30,3 +30,6 @@ pnpm-debug.log*
 /worker/functions/
 
 .idea
+
+# Generated demo projects (temporary build artifacts)
+generated-demos/
